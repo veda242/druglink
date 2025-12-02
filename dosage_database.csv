@@ -1,0 +1,8 @@
+drug,usual_mg,toxic_mg,notes
+dolo 650,650,4000,Acetaminophen adult max ~4000 mg/day
+paracetamol,500,4000,Common analgesic; hepatotoxic in overdose
+ibuprofen,400,2400,Typical single dose 200-400 mg; watch GI/renal risks
+warfarin,5,20,Warfarin dosing varies; watch INR and bleeding risk
+aspirin,325,1500,High doses cause risk; interacts with anticoagulants
+combiflam,325,5000,Combiflam contains ibuprofen+paracetamol - doses cumulative
+ketrol dt,10,20,Ketorolac short term; avoid >5 days, watch renal/bleeding
