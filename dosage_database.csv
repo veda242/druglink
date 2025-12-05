@@ -1,8 +1,115 @@
 drug,usual_mg,toxic_mg,notes
 dolo 650,650,4000,Acetaminophen adult max ~4000 mg/day
 paracetamol,500,4000,Common analgesic; hepatotoxic in overdose
-ibuprofen,400,2400,Typical single dose 200-400 mg; watch GI/renal risks
-warfarin,5,20,Warfarin dosing varies; watch INR and bleeding risk
-aspirin,325,1500,High doses cause risk; interacts with anticoagulants
-combiflam,325,5000,Combiflam contains ibuprofen+paracetamol - doses cumulative
-ketrol dt,10,20,Ketorolac short term; avoid >5 days, watch renal/bleeding
+ibuprofen,400,2400,Typical single dose 200-400 mg; GI/renal risk at high doses
+warfarin,5,20,Requires INR monitoring; bleeding risk
+aspirin,325,1500,High doses cause bleeding risk; interacts with anticoagulants
+combiflam,325,5000,Paracetamol + ibuprofen combination
+ketorolac,10,40,Strong NSAID; avoid >5 days
+naproxen,250,1500,NSAID; long half-life; watch renal function
+diclofenac,50,300,Hepatotoxicity risk at high doses
+aceclofenac,100,400,NSAID similar to diclofenac
+celecoxib,100,400,COX-2 inhibitor; lower GI risk
+etoricoxib,60,120,COX-2 NSAID; avoid in cardiac risk
+tramadol,50,400,Opioid analgesic; seizure risk at high doses
+morphine,10,200,Strong opioid; respiratory depression risk
+codeine,30,240,Opioid; constipation & sedation
+oxycodone,5,80,Opioid; high dependence risk
+hydrocodone,10,60,Opioid; avoid with alcohol/CNS depressants
+gabapentin,300,3600,Neuropathic pain; dizziness/sedation
+pregabalin,75,600,Neuropathic pain; dizziness/sedation
+amitriptyline,10,150,TCA; anticholinergic side effects
+nortriptyline,25,150,TCA; fewer anticholinergic effects
+sertraline,50,200,SSRI; serotonin syndrome w/ other serotonergics
+fluoxetine,20,80,SSRI; very long half-life
+escitalopram,10,20,SSRI; QT prolongation at high doses
+citalopram,20,40,QT prolongation >40 mg
+venlafaxine,75,300,SNRI; hypertension risk
+duloxetine,30,120,SNRI; hepatotoxicity rare
+bupropion,150,450,Seizure risk at high doses
+mirtazapine,15,45,Sedative antidepressant
+clonazepam,0.5,4,Benzodiazepine; dependence risk
+alprazolam,0.25,4,Short-acting benzo; withdrawal risk
+diazepam,5,40,Long-acting benzo
+lorazepam,1,10,Benzodiazepine; avoid alcohol
+zolpidem,5,20,Sleep aid; dependence risk
+metformin,500,2550,First-line diabetes; GI upset
+glimepiride,1,8,Sulfonylurea; hypoglycemia risk
+gliclazide,40,240,Hypoglycemia risk
+insulin regular,5,100,Units vary; hypoglycemia risk
+insulin glargine,10,100,Long acting insulin
+semaglutide,0.25,2,GLP-1 agonist; GI effects
+sitagliptin,50,100,DPP-4 inhibitor
+linagliptin,5,10,DPP-4 inhibitor; renal friendly
+atorvastatin,10,80,Statin; myopathy at high doses
+rosuvastatin,5,40,Potent statin; rhabdomyolysis rare
+simvastatin,20,80,Drug interactions ↑ risk
+fenofibrate,145,400,Triglyceride lowering; myopathy with statins
+ezetimibe,10,20,Cholesterol absorption blocker
+losartan,25,100,ARB; hyperkalemia risk
+telmisartan,40,80,ARB; avoid dual renin blockade
+olmesartan,20,40,ARB
+amlodipine,5,10,CCB; peripheral edema
+nifedipine,10,60,Rapid-acting forms unsafe
+metoprolol,25,200,Beta-blocker; bradycardia risk
+propranolol,20,240,Beta-blocker; bronchospasm in asthma
+bisoprolol,2.5,10,Beta-blocker; heart block risk
+carvedilol,6.25,50,Alpha-beta blocker
+hydrochlorothiazide,12.5,50,Hypokalemia risk
+furosemide,20,240,Loop diuretic; electrolyte imbalance
+spironolactone,25,200,Potassium-sparing; hyperkalemia
+torsemide,10,200,Loop diuretic
+clopidogrel,75,300,Antiplatelet; bleeding risk
+ticagrelor,90,180,Antiplatelet; avoid with strong CYP3A4 inhibitors
+prasugrel,10,20,Potent antiplatelet
+heparin,5000,40000,Bleeding risk; monitor aPTT
+enoxaparin,40,200,Bleeding risk; weight-dependent dosing
+apixaban,5,20,Factor Xa inhibitor; bleeding risk
+rivaroxaban,10,30,Anticoagulant; avoid in renal failure
+dabigatran,75,300,Direct thrombin inhibitor; GI upset
+azithromycin,500,2000,Macrolide; QT prolongation
+clarithromycin,250,1000,Macrolide; CYP interactions
+amoxicillin,500,3000,Penicillin; safe in pregnancy
+augmentin,625,3000,Amoxicillin + clavulanate
+cefuroxime,250,1500,2nd gen cephalosporin
+cefixime,200,400,3rd gen cephalosporin
+ceftriaxone,1000,4000,IV only; biliary sludge risk
+doxycycline,100,300,Photosensitivity; avoid in pregnancy
+minocycline,50,200,Tetracycline class
+ciprofloxacin,500,1500,Fluoroquinolone; tendon rupture risk
+levofloxacin,500,1500,QT prolongation
+ofloxacin,200,800,Fluoroquinolone; CNS effects
+metronidazole,400,2000,Disulfiram reaction with alcohol
+tinidazole,500,2000,Antiprotozoal
+fluconazole,150,800,QT prolongation; drug interactions
+itraconazole,100,400,CYP3A4 inhibitor; hepatotoxicity
+terbinafine,250,500,Liver risk
+omeprazole,20,80,PPI; long-term magnesium deficiency
+pantoprazole,40,80,PPI
+rabeprazole,20,40,PPI
+esomeprazole,20,80,PPI
+ranitidine,150,600,H2 blocker (withdrawn in some markets)
+famotidine,20,80,H2 blocker; safe
+ondansetron,4,32,QT prolongation at high doses
+domperidone,10,30,QT prolongation warning
+metoclopramide,10,40,Extrapyramidal symptoms risk
+levocetirizine,5,10,Antihistamine; sedation rare
+cetirizine,10,40,Common antihistamine
+fexofenadine,120,360,Non-sedating antihistamine
+montelukast,10,20,Leukotriene blocker
+salbutamol,2,12,Tachycardia at high doses
+budesonide,200,1600,Inhaled steroid
+fluticasone,100,500,Inhaled steroid; oral thrush risk
+tiotropium,18,36,COPD inhaler; anticholinergic
+ipratropium,20,200,Bronchodilator
+lisinopril,5,40,ACE inhibitor; cough & angioedema
+ramipril,2.5,10,ACE inhibitor
+isosorbide dinitrate,10,80,Nitrate; tolerance develops
+nitroglycerin,0.4,2,Potent vasodilator
+ferrous sulfate,325,975,GI upset
+folic acid,5,20,Safe vitamin; high doses mask B12 deficiency
+vitamin B12,500,3000,Generally safe
+vitamin D3,1000,10000,Toxicity at very high chronic doses
+calcium carbonate,500,3000,Constipation risk
+magnesium oxide,400,2000,Diarrhea at high doses
+zinc,20,150,High doses cause nausea and copper deficiency

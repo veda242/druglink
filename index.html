@@ -1,157 +1,363 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<title>Drug Interaction Checker</title>
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<style>
-  body { font-family: Arial, sans-serif; background:#f7f9fc; margin:0; padding:20px; }
-  .container { max-width:720px; margin:20px auto; background:#fff; padding:24px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
-  h1 { text-align:center; color:#333; margin-top:0; }
-  textarea { width:100%; height:80px; padding:10px; border-radius:8px; border:1px solid #dfe6ef; font-size:15px; resize:vertical; }
-  button { margin-top:12px; width:100%; padding:12px; border-radius:8px; border:none; background:#2b87f5; color:white; font-size:16px; cursor:pointer; }
-  button[disabled]{ opacity:0.6; cursor:not-allowed; }
-  .result { margin-top:20px; padding:18px; background:#fbfdff; border-radius:10px; border:1px solid #eef3fb; }
-  .tag { display:inline-block; padding:6px 12px; border-radius:8px; color:#fff; font-weight:700; }
-  .interaction { background:#e74c3c; } .no-interaction { background:#27ae60; }
-  .confidence-bar { height:16px; background:#eee; border-radius:8px; overflow:hidden; margin-top:8px; }
-  .confidence-fill { height:100%; background:#3498db; transition:width .4s ease; }
-  .risk-safe{ color:#27ae60; font-weight:700 } .risk-warning{ color:#f39c12; font-weight:700 } .risk-danger{ color:#c0392b; font-weight:700 }
-  .spinner { display:inline-block; width:18px; height:18px; border:3px solid rgba(0,0,0,0.08); border-top-color:#2b87f5; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle; margin-left:8px; }
-  @keyframes spin { to { transform:rotate(360deg) } }
-  ul.bullets { margin:8px 0 0 18px; }
-  pre.fallback { white-space:pre-wrap; background:#fff8e6; padding:8px; border-radius:6px; border:1px solid #ffecb3; }
-  .small { font-size:13px; color:#666; margin-top:6px; }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>DrugLink — Interaction Checker</title>
+  <style>
+    :root{
+      --bg:#071026; --card:#071a2a; --muted:#98a0b3;
+      --accent:#6ee7b7; --danger:#ff6b6b;
+      --safe:#22c55e; --interaction:#f97316;
+      font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    html,body{
+      height:100%;margin:0;
+      background:linear-gradient(180deg,#06121b 0%, #071026 60%);
+      color:#e6eef8;
+    }
+    .app{
+      min-height:100vh;display:flex;align-items:center;justify-content:center;padding:28px;
+    }
+    .card{
+      width:100%;max-width:900px;
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:14px;padding:24px;
+      box-shadow: 0 6px 30px rgba(2,6,23,0.6);
+      backdrop-filter: blur(6px);
+    }
+    header{display:flex;gap:12px;align-items:center;margin-bottom:20px}
+    .logo{
+      width:48px;height:48px;border-radius:10px;
+      background:linear-gradient(135deg,var(--accent), #4fd1c5);
+      display:flex;align-items:center;justify-content:center;
+      color:#042225;font-weight:700;font-size:18px;
+    }
+    h1{margin:0;font-size:22px}
+    .desc{color:var(--muted);font-size:13px;margin-top:4px}
+
+    .row{display:flex;gap:14px;margin-top:18px;flex-wrap:wrap}
+    .input-col{flex:1;min-width:220px}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type="text"]{
+      width:100%;padding:12px 14px;border-radius:8px;
+      border:1px solid rgba(255,255,255,0.06);
+      background:var(--card);color:inherit;font-size:14px;outline:none;
+    }
+    input[type="text"]:focus{
+      box-shadow:0 6px 18px rgba(6,22,43,0.6);
+      border-color:rgba(110,231,183,0.18);
+    }
+
+    .actions{display:flex;gap:12px;align-items:center;margin-top:14px;flex-wrap:wrap}
+    .btn{
+      padding:10px 18px;border-radius:999px;
+      background:linear-gradient(90deg,var(--accent),#3bd5c2);
+      border:none;color:#042225;font-weight:600;cursor:pointer;
+    }
+    .btn.secondary{
+      background:transparent;
+      border:1px solid rgba(255,255,255,0.12);
+      color:var(--muted);
+    }
+    .btn:disabled{opacity:0.55;cursor:not-allowed}
+    .small{font-size:13px;color:var(--muted)}
+
+    .results{margin-top:18px;}
+    .result-card{
+      background:rgba(255,255,255,0.02);
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.04);
+      padding:16px 18px;
+    }
+    .badge-status{
+      display:inline-block;
+      padding:4px 10px;border-radius:999px;
+      font-size:12px;font-weight:700;
+      letter-spacing:0.04em;
+    }
+    .badge-safe{
+      background:rgba(34,197,94,0.16);
+      color:var(--safe);
+    }
+    .badge-interaction{
+      background:rgba(248,113,113,0.16);
+      color:var(--danger);
+    }
+
+    .section-title{
+      margin-top:12px;margin-bottom:4px;
+      font-weight:600;font-size:14px;
+    }
+
+    .progress-shell{
+      margin-top:4px;
+      width:100%;height:10px;border-radius:999px;
+      background:rgba(148,163,184,0.35);
+      overflow:hidden;
+    }
+    .progress-bar{
+      height:100%;border-radius:999px;
+      background:linear-gradient(90deg,#22c55e,#3b82f6);
+      width:0%;
+      transition:width 0.4s ease;
+    }
+    .muted{color:var(--muted);font-size:13px}
+    .list{margin:4px 0 0 0;padding-left:18px;font-size:14px}
+    .list li{margin-bottom:2px}
+    .error{
+      color:var(--danger);
+      background: rgba(255,107,107,0.06);
+      padding:10px;border-radius:8px;margin-top:10px;
+      border:1px solid rgba(255,107,107,0.22);
+      font-size:14px;
+    }
+    .loader{width:18px;height:18px;border-radius:50%;border:3px solid rgba(255,255,255,0.12);border-top-color:var(--accent);animation:spin 0.9s linear infinite;display:inline-block;vertical-align:middle;margin-right:8px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    pre{
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, "Roboto Mono", "Courier New", monospace;
+      font-size:13px;white-space:pre-wrap;margin:4px 0 0 0;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Drug Interaction Checker</h1>
+  <div class="app">
+    <div class="card" role="main" aria-live="polite">
+      <header>
+        <div class="logo">DL</div>
+        <div>
+          <h1>Drug Interaction Checker</h1>
+          <div class="desc">
+            Enter two drug names & dosages (e.g., <span class="muted">paracetamol 500 mg</span>, <span class="muted">cetirizine 10 mg</span>).
+          </div>
+        </div>
+      </header>
 
-    <label for="inputText">Enter drug names & dosages (one line is fine):</label>
-    <textarea id="inputText" placeholder="Example: warfarin 5 mg and ibuprofen 400 mg"></textarea>
+      <div class="row">
+        <div class="input-col">
+          <label for="drug1">Drug A</label>
+          <input id="drug1" type="text" placeholder="e.g., paracetamol 500 mg">
+        </div>
+        <div class="input-col">
+          <label for="drug2">Drug B</label>
+          <input id="drug2" type="text" placeholder="e.g., cetirizine 10 mg">
+        </div>
+      </div>
 
-    <!-- important: type="button" prevents form-submit reload -->
-    <button id="checkBtn" type="button">Check Interaction</button>
+      <div class="actions">
+        <button id="checkBtn" class="btn">Check Interaction</button>
+        <button id="swapBtn" class="btn secondary" title="Swap drugs">Swap</button>
+        <div class="small">
+          Backend endpoint: <span class="muted">/predict_enhanced</span>
+        </div>
+      </div>
 
-    <div id="result" class="result" style="display:none"></div>
+      <div id="messages" class="results" role="region"></div>
+
+      <footer style="margin-top:12px;text-align:right;">
+        <span class="muted">DrugLink • client UI</span>
+      </footer>
+    </div>
   </div>
 
 <script>
-const checkBtn = document.getElementById('checkBtn');
-const inputText = document.getElementById('inputText');
-const resultDiv = document.getElementById('result');
+  // Point directly to your FastAPI backend
+  const ENDPOINT = "http://127.0.0.1:8000/predict_enhanced";
 
-function renderBullets(explText){
-  // explText may already include "- " bullets or be a paragraph.
-  // Normalize lines that start with '-' or '•' into a list.
-  const lines = explText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length>0);
-  // If many lines already start with '-' or '•', render list
-  const bulletLines = lines.filter(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('  •') || l.startsWith('*'));
-  if(bulletLines.length >= 1){
-    // clean bullet markers
-    const items = bulletLines.map(l => l.replace(/^[-\u2022\*\s]+/, '').trim());
-    return `<ul class="bullets">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
-  }
-  // Fallback: try to split by sentence and show each as bullet
-  const sentences = explText.split(/(?<=\.)\s+/).filter(s => s.trim().length>0);
-  if(sentences.length>1){
-    return `<ul class="bullets">${sentences.map(s => `<li>${escapeHtml(s.replace(/\.$/, ''))}</li>`).join('')}</ul>`;
-  }
-  // final fallback: show as preformatted paragraph
-  return `<pre class="fallback">${escapeHtml(explText)}</pre>`;
-}
+  const drug1El = document.getElementById("drug1");
+  const drug2El = document.getElementById("drug2");
+  const checkBtn = document.getElementById("checkBtn");
+  const swapBtn = document.getElementById("swapBtn");
+  const messages = document.getElementById("messages");
 
-function escapeHtml(s){
-  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-async function checkInteraction(){
-  const text = inputText.value.trim();
-  if(!text){
-    alert('Please enter a drug pair or text.');
-    return;
+  function clearMessages() {
+    messages.innerHTML = "";
   }
 
-  // show loading state
-  checkBtn.disabled = true;
-  const spinner = document.createElement('span');
-  spinner.className = 'spinner';
-  spinner.id = 'spinner';
-  checkBtn.appendChild(spinner);
+  function escapeHtml(s) {
+    if (!s && s !== 0) return "";
+    return String(s).replace(/[&<>"']/g, (m) =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[m])
+    );
+  }
 
-  resultDiv.style.display = 'block';
-  resultDiv.innerHTML = `<div class="small">Analyzing... (this may take 0.5–3s)</div>`;
+  function showError(msg) {
+    clearMessages();
+    const el = document.createElement("div");
+    el.className = "error";
+    el.innerHTML = escapeHtml(msg);
+    messages.appendChild(el);
+  }
 
-  try {
-    const res = await fetch('http://127.0.0.1:8000/predict_enhanced', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({texts: [text]})
-    });
+  function showLoading() {
+    clearMessages();
+    const el = document.createElement("div");
+    el.className = "result-card";
+    el.innerHTML = '<span class="loader"></span>Checking interaction…';
+    messages.appendChild(el);
+  }
 
-    if(!res.ok){
-      // show error details
-      const txt = await res.text();
-      resultDiv.innerHTML = `<div class="small">Server error: ${res.status} ${res.statusText}</div><pre class="fallback">${escapeHtml(txt)}</pre>`;
+  function renderResult(data) {
+    clearMessages();
+
+    // We send ONE combined text, so take index 0
+    const label = (data.predictions && data.predictions[0]) || "unknown";
+    const rawConf = Array.isArray(data.confidence)
+      ? data.confidence[0]
+      : data.confidence;
+    const conf = typeof rawConf === "number" ? rawConf : 0.5;
+    const pct = Math.round(conf * 100);
+    const dosage = (data.dosage_checks && data.dosage_checks[0]) || {};
+    const entries = dosage.entries || [];
+    const agg = dosage.aggregated || {};
+    const overallRisk = agg.overall_risk || "unknown";
+    const explanation = (data.llm_explanations && data.llm_explanations[0]) || "";
+
+    const isInteraction = String(label).toLowerCase().includes("interaction") &&
+                          !String(label).toLowerCase().startsWith("no_");
+
+    const card = document.createElement("div");
+    card.className = "result-card";
+
+    // status badge
+    const status = document.createElement("div");
+    const badgeClass = isInteraction ? "badge-interaction" : "badge-safe";
+    status.innerHTML = `<span class="badge-status ${badgeClass}">${escapeHtml(
+      String(label).toUpperCase()
+    )}</span>`;
+    card.appendChild(status);
+
+    // Confidence
+    const confTitle = document.createElement("div");
+    confTitle.className = "section-title";
+    confTitle.textContent = "Confidence";
+    card.appendChild(confTitle);
+
+    const barShell = document.createElement("div");
+    barShell.className = "progress-shell";
+    const bar = document.createElement("div");
+    bar.className = "progress-bar";
+    bar.style.width = pct + "%";
+    barShell.appendChild(bar);
+    card.appendChild(barShell);
+
+    const confText = document.createElement("div");
+    confText.className = "muted";
+    confText.textContent = `${pct}% sure`;
+    card.appendChild(confText);
+
+    // Dosage Risk
+    const drTitle = document.createElement("div");
+    drTitle.className = "section-title";
+    drTitle.textContent = "Dosage Risk";
+    card.appendChild(drTitle);
+
+    const riskText = document.createElement("div");
+    riskText.style.color = "#bbf7d0";
+    riskText.style.fontWeight = "600";
+    riskText.style.fontSize = "14px";
+    riskText.textContent = `Overall Risk: ${overallRisk}`;
+    card.appendChild(riskText);
+
+    if (entries.length) {
+      const ul = document.createElement("ul");
+      ul.className = "list";
+      entries.forEach((e) => {
+        const li = document.createElement("li");
+        const line = `${e.drug_phrase || "drug"}${
+          e.qty_mg != null ? " — " + e.qty_mg + " " + (e.unit || "mg") : ""
+        }`;
+        li.textContent = line;
+        ul.appendChild(li);
+      });
+      card.appendChild(ul);
+    }
+
+    // Explanation
+    const exTitle = document.createElement("div");
+    exTitle.className = "section-title";
+    exTitle.textContent = "Explanation";
+    card.appendChild(exTitle);
+
+    const pre = document.createElement("pre");
+    pre.textContent = explanation;
+    card.appendChild(pre);
+
+    messages.appendChild(card);
+  }
+
+  async function checkInteraction() {
+    const a = drug1El.value.trim();
+    const b = drug2El.value.trim();
+
+    if (!a && !b) {
+      showError("Please provide at least one drug.");
+      return;
+    }
+    if (!a || !b) {
+      showError("Please fill both Drug A and Drug B.");
       return;
     }
 
-    const data = await res.json();
-    // defensive checks
-    const prediction = (data.predictions && data.predictions[0]) || 'unknown';
-    const confidence = (data.confidence && data.confidence[0]) || 0;
-    const dosage = (data.dosage_checks && data.dosage_checks[0]) || {aggregated:{overall_risk:'unknown'}, entries:[]};
-    const explanation = (data.llm_explanations && data.llm_explanations[0]) || 'No explanation';
+    // Combine drugs into one string
+    const combined = `${a} ${b}`;
 
-    // build HTML
-    const tagClass = prediction === 'interaction' ? 'interaction' : 'no-interaction';
-    const confidencePct = Math.round(confidence*100);
-    const overallRisk = dosage.aggregated && dosage.aggregated.overall_risk ? dosage.aggregated.overall_risk : 'unknown';
-    let riskClass = 'risk-danger';
-    if(overallRisk === 'likely_safe') riskClass = 'risk-safe';
-    else if(overallRisk === 'possible_harm') riskClass = 'risk-warning';
+    // ✅ NEW CHECK — prevents empty or invalid first request
+    if (!combined.trim()) {
+        showError("Please enter two drug names.");
+        return;
+    }
 
-    const drugsHtml = (dosage.entries||[]).map(d => `<li>${escapeHtml(String(d.drug_phrase))} - ${d.qty_mg || 'N/A'} mg</li>`).join('');
+    showLoading();
+    toggleControls(false);
 
-    // Render bullet-point explanation as list if possible
-    const explHtml = renderBullets(String(explanation));
+    try {
+      const resp = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ texts: [combined] })
+        
+      });
 
-    resultDiv.innerHTML = `
-      <div><span class="tag ${tagClass}">${escapeHtml(prediction.toUpperCase())}</span></div>
+      const raw = await resp.text();
+      let data = null;
+      try { data = raw ? JSON.parse(raw) : null; } catch(e) {}
 
-      <h3 style="margin:10px 0 6px 0">Confidence</h3>
-      <div class="confidence-bar"><div class="confidence-fill" style="width:${confidencePct}%"></div></div>
-      <div class="small">${confidencePct}% sure</div>
+      if (!resp.ok) {
+        showError(`Server returned ${resp.status} ${resp.statusText}\n${raw || ""}`);
+        return;
+      }
+      if (!data) {
+        showError("Unable to parse server response.");
+        return;
+      }
 
-      <h3 style="margin-top:14px">Dosage Risk</h3>
-      <div class="${riskClass}">Overall Risk: ${escapeHtml(overallRisk)}</div>
-      <ul style="margin-top:8px">${drugsHtml}</ul>
-
-      <h3 style="margin-top:12px">Explanation</h3>
-      ${explHtml}
-    `;
-  } catch(err){
-    resultDiv.innerHTML = `<div class="small">Request failed: ${escapeHtml(String(err))}</div>`;
-    console.error(err);
-  } finally {
-    // remove spinner and re-enable button
-    const sp = document.getElementById('spinner');
-    if(sp) sp.remove();
-    checkBtn.disabled = false;
+      renderResult(data);
+    } catch (err) {
+      showError(err.message || String(err));
+    } finally {
+      toggleControls(true);
+    }
   }
-}
 
-// attach
-checkBtn.addEventListener('click', checkInteraction);
-
-// Allow Ctrl+Enter to submit without reloading
-inputText.addEventListener('keydown', function(e){
-  if(e.ctrlKey && e.key === 'Enter'){
-    e.preventDefault();
-    checkInteraction();
+  function toggleControls(enabled) {
+    checkBtn.disabled = !enabled;
+    swapBtn.disabled = !enabled;
+    checkBtn.textContent = enabled ? "Check Interaction" : "Checking…";
   }
-});
+
+  swapBtn.addEventListener("click", () => {
+    const tmp = drug1El.value;
+    drug1El.value = drug2El.value;
+    drug2El.value = tmp;
+  });
+
+  checkBtn.addEventListener("click", checkInteraction);
+  [drug1El, drug2El].forEach((inp) =>
+    inp.addEventListener("keydown", (ev) => {
+      if (ev.key === "Enter") checkInteraction();
+    })
+  );
 </script>
 </body>
 </html>

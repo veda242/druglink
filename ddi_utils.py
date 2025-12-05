@@ -1,141 +1,219 @@
 # ddi_utils.py
+#
+# Utilities for dosage extraction, dosage risk, and confidence.
+
+from __future__ import annotations
 import re
-import csv
 from pathlib import Path
-from typing import List, Tuple, Dict, Optional
+from typing import List, Tuple, Any
 
-# Load a small dosage database (drug -> (usual_dose_mg, toxic_threshold_mg, notes))
-# You can expand dosage_database.csv with more rows.
-DOSAGE_DB_PATH = Path("dosage_database.csv")
+import pandas as pd
+import numpy as np
 
-def load_dosage_db(path: Path = DOSAGE_DB_PATH) -> Dict[str, Dict]:
-    db = {}
-    if not path.exists():
-        return db
-    with open(path, newline="", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for r in reader:
-            name = r.get("drug").strip().lower()
-            try:
-                usual = float(r.get("usual_mg") or 0)
-            except Exception:
-                usual = 0.0
-            try:
-                toxic = float(r.get("toxic_mg") or 0)
-            except Exception:
-                toxic = 0.0
-            notes = r.get("notes") or ""
-            db[name] = {"usual_mg": usual, "toxic_mg": toxic, "notes": notes}
-    return db
+# -----------------------------------------
+# Load dosage database (dosage_database.csv)
+# -----------------------------------------
 
-DOSAGE_DB = load_dosage_db()
+BASE_DIR = Path(__file__).resolve().parent
+DOSAGE_DB_PATH = BASE_DIR / "dosage_database.csv"
 
-# Simple regex to detect tokens like "dolo 650", "warfarin 5 mg", "500mg", "5 mg"
-DOSAGE_RE = re.compile(r"([A-Za-z0-9\-\s]+?)\s+(\d+(?:\.\d+)?)\s*(mg|g|mcg|µg)?\b", re.IGNORECASE)
+print("Loading dosage DB from:", DOSAGE_DB_PATH)
+try:
+    _dosage_df = pd.read_csv(DOSAGE_DB_PATH)
+    _dosage_df["drug_norm"] = _dosage_df["drug"].astype(str).str.lower().str.strip()
+    print("Dosage DB rows:", len(_dosage_df))
+except Exception as e:
+    print("Error loading dosage_database.csv:", e)
+    _dosage_df = pd.DataFrame(
+        columns=["drug", "usual_mg", "toxic_mg", "notes", "drug_norm"]
+    )
 
-def normalize_drug_name(name: str) -> str:
-    return re.sub(r"[^a-z0-9]", " ", name.lower()).strip()
 
-def extract_drug_dosages(text: str) -> List[Tuple[str, Optional[float], Optional[str]]]:
+# -----------------------------------------
+# Extraction
+# -----------------------------------------
+
+def extract_drug_dosages(text: str) -> List[Tuple[str, float | None, str]]:
     """
-    Extract drug-like phrases and numeric dosages from a text.
-    Returns list of (drug_phrase, quantity_in_mg_or_none, unit_str_or_none)
+    Very simple extractor: finds 'drug 500 mg', 'ibuprofen 400mg', etc.
+
+    Returns list of (drug_phrase, qty_mg, "mg").
+    If no dose found at all, returns [(full_text, None, "mg")] as fallback.
     """
-    results = []
-    for match in DOSAGE_RE.finditer(text):
-        raw_name = match.group(1).strip()
+    if not text:
+        return []
+
+    pattern = re.compile(
+        r"([A-Za-z0-9\+\-\s]+?)\s+(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|g)\b",
+        re.IGNORECASE,
+    )
+
+    entries: List[Tuple[str, float | None, str]] = []
+
+    for match in pattern.finditer(text):
+        phrase = match.group(1).strip()
         qty = float(match.group(2))
-        unit = match.group(3) or "mg"
-        unit = unit.lower()
-        # normalize quantity to mg (very simplistic)
-        qty_mg = qty
-        if unit in ("g",):
+        unit_raw = match.group(3).lower()
+
+        # normalize to mg
+        if unit_raw == "g":
             qty_mg = qty * 1000.0
-        elif unit in ("mcg", "µg"):
+        elif unit_raw in ("mcg", "µg", "ug"):
             qty_mg = qty / 1000.0
-        results.append((raw_name, qty_mg, unit))
-    # If no explicit dosage found, try to split by 'and' or ',' to get drug names
-    if not results:
-        # split tokens and return plain drug guesses without dosages
-        items = re.split(r"[,\n/;]| and | & ", text)
-        for item in items:
-            token = item.strip()
-            if token:
-                results.append((token, None, None))
-    return results
-
-def check_dosage_risk_for_entry(drug_phrase: str, qty_mg: Optional[float]) -> Dict:
-    """
-    Using the dosage DB (DOSAGE_DB) decide whether qty is likely harmful.
-    Returns dict: {'drug':..., 'qty_mg':..., 'risk':'safe'|'possible_harm'|'unknown', 'details':...}
-    """
-    norm = normalize_drug_name(drug_phrase)
-    # try exact match
-    info = DOSAGE_DB.get(norm)
-    if info is None:
-        # try partial match: any key contained in norm or vice versa
-        for k, v in DOSAGE_DB.items():
-            if k in norm or norm in k:
-                info = v
-                break
-
-    if qty_mg is None:
-        return {"drug": drug_phrase, "qty_mg": None, "risk": "unknown", "details": "No dosage specified"}
-
-    if info:
-        toxic = info.get("toxic_mg") or 0.0
-        usual = info.get("usual_mg") or 0.0
-        # simple thresholds:
-        if toxic > 0 and qty_mg >= toxic:
-            return {"drug": drug_phrase, "qty_mg": qty_mg, "risk": "harmful", "details": f"above toxic threshold ({toxic} mg). {info.get('notes')}"}
-        elif usual > 0 and qty_mg > 2.5 * usual:
-            return {"drug": drug_phrase, "qty_mg": qty_mg, "risk": "possible_harm", "details": f"more than 2.5x usual dose ({usual} mg). {info.get('notes')}"}
         else:
-            return {"drug": drug_phrase, "qty_mg": qty_mg, "risk": "likely_safe", "details": f"within expected dose range ({usual} mg typical). {info.get('notes')}"}
-    else:
-        return {"drug": drug_phrase, "qty_mg": qty_mg, "risk": "unknown", "details": "No dosage data for this drug in database"}
+            qty_mg = qty
 
-def aggregate_dosage_risk(entries: List[Tuple[str, Optional[float], Optional[str]]]) -> Dict:
-    results = []
-    highest = "likely_safe"
-    order = {"unknown": 0, "likely_safe": 1, "possible_harm": 2, "harmful": 3}
-    for drug, qty, unit in entries:
-        r = check_dosage_risk_for_entry(drug, qty)
-        results.append(r)
-        if order.get(r["risk"], 0) > order.get(highest, 0):
-            highest = r["risk"]
-    return {"overall_risk": highest, "per_drug": results}
+        entries.append((phrase, qty_mg, "mg"))
 
-# Confidence helper
-def get_confidence(model, texts: List[str]) -> List[float]:
+    if not entries:
+        # no dosage detected → just return the text as a single "drug"
+        entries.append((text.strip(), None, "mg"))
+
+    return entries
+
+
+# -----------------------------------------
+# Dosage risk helpers
+# -----------------------------------------
+
+def _lookup_limits(drug_phrase: str) -> tuple[float | None, float | None]:
     """
-    Return confidence scores in range [0,1].
-    If predict_proba available -> max class probability.
-    Else if decision_function available -> convert to 0-1 via logistic.
-    Else return 0.5 for each (unknown).
+    Use dosage_database.csv to get (usual_mg, toxic_mg) for a given phrase.
+    Returns (None, None) if not found.
+    """
+    if _dosage_df.empty:
+        return None, None
+
+    name = str(drug_phrase).lower().strip()
+    rows = _dosage_df[_dosage_df["drug_norm"] == name]
+
+    if rows.shape[0] == 0:
+        # fallback: substring match either way
+        rows = _dosage_df[
+            _dosage_df["drug_norm"].apply(
+                lambda x: name in x or x in name  # type: ignore[arg-type]
+            )
+        ]
+
+    if rows.shape[0] == 0:
+        return None, None
+
+    row = rows.iloc[0]
+    try:
+        usual = float(row["usual_mg"])
+    except Exception:
+        usual = None
+    try:
+        toxic = float(row["toxic_mg"])
+    except Exception:
+        toxic = None
+
+    return usual, toxic
+
+
+def aggregate_dosage_risk(entries: List[Tuple[str, float | None, str]]) -> dict:
+    """
+    entries: list of (drug_phrase, qty_mg, unit)
+
+    Steps:
+    - Normalize name (lower/strip).
+    - Sum doses for same drug.
+    - Use dosage_database.csv:
+        * total <= usual_mg        → likely_safe
+        * usual_mg–toxic_mg        → caution
+        * total  > toxic_mg        → likely_risky
+    """
+    if not entries:
+        return {"overall_risk": "unknown", "per_drug": []}
+
+    # Sum doses per normalized drug name
+    totals: dict[str, dict] = {}
+    for phrase, qty_mg, unit in entries:
+        name = str(phrase).lower().strip()
+        if name not in totals:
+            totals[name] = {
+                "phrases": [phrase.strip()],
+                "total_mg": float(qty_mg) if qty_mg is not None else 0.0,
+                "unit": unit,
+            }
+        else:
+            totals[name]["phrases"].append(phrase.strip())
+            if qty_mg is not None:
+                totals[name]["total_mg"] += float(qty_mg)
+
+    per_drug: list[dict] = []
+    worst = "likely_safe"
+    order = ["likely_safe", "caution", "likely_risky"]
+
+    for name, info in totals.items():
+        total = info["total_mg"]
+        unit = info["unit"]
+        phrase = ", ".join(info["phrases"])
+
+        usual, toxic = _lookup_limits(name)
+
+        if usual is None or toxic is None:
+            risk = "unknown"
+            details = "No reference dose found in dosage database."
+        else:
+            if total <= usual:
+                risk = "likely_safe"
+                details = f"Within usual single dose (~{usual} mg). Total: {total} mg."
+            elif total <= toxic:
+                risk = "caution"
+                details = (
+                    f"Above usual dose but below toxic range "
+                    f"(usual {usual} mg, toxic {toxic} mg). Total: {total} mg."
+                )
+            else:
+                risk = "likely_risky"
+                details = f"Exceeds toxic dose threshold ({toxic} mg). Total: {total} mg."
+
+        per_drug.append(
+            {
+                "drug": phrase,
+                "qty_mg": total,
+                "unit": unit,
+                "risk": risk,
+                "details": details,
+            }
+        )
+
+        if risk in order and order.index(risk) > order.index(worst):
+            worst = risk
+
+    if all(d["risk"] == "unknown" for d in per_drug):
+        overall = "unknown"
+    else:
+        overall = worst
+
+    return {"overall_risk": overall, "per_drug": per_drug}
+
+
+# -----------------------------------------
+# Confidence
+# -----------------------------------------
+
+def get_confidence(model: Any, texts: List[str]) -> List[float]:
+    """
+    Return confidence scores for each text based on model.predict_proba.
+    Falls back to 0.5 if anything fails.
     """
     try:
         if hasattr(model, "predict_proba"):
-            probs = model.predict_proba(texts)
-            # take max probability per sample
-            confidences = [float(max(p)) for p in probs]
-            return confidences
+            probs = model.predict_proba(texts)  # shape (n_samples, n_classes)
+            probs = np.asarray(probs)
+            # take the max probability per sample
+            return probs.max(axis=1).tolist()
         elif hasattr(model, "decision_function"):
-            import math
-            df = model.decision_function(texts)
-            # for binary, df shape (n,)
-            if hasattr(df[0], "__iter__"):
-                # multiclass: softmax-like conversion
-                def softmax_row(row):
-                    ex = [math.exp(x) for x in row]
-                    s = sum(ex)
-                    return max(ex) / s
-                return [float(softmax_row(row)) for row in df]
-            else:
-                # scalar decision function -> map via sigmoid
-                def sigmoid(x): return 1.0 / (1.0 + math.exp(-x))
-                return [float(sigmoid(x)) for x in df]
-    except Exception:
-        pass
-    # fallback
+            scores = model.decision_function(texts)
+            scores = np.asarray(scores)
+            # crude squashing
+            scores = 1.0 / (1.0 + np.exp(-scores))
+            if scores.ndim > 1:
+                scores = scores.max(axis=1)
+            return scores.tolist()
+    except Exception as e:
+        print("get_confidence error:", e)
+
     return [0.5 for _ in texts]
