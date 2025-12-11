@@ -11,7 +11,11 @@ const MONGO_URI =
   process.env.MONGO_URI || "mongodb://127.0.0.1:27017/druglink_db";
 
 // Middlewares
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(cors({
+  origin: ["http://localhost:3000", "http://localhost:3001", "http://localhost:3002"],
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Routes
