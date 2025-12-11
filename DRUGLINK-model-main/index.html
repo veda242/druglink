@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Drug Interaction Checker</title>
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<style>
+  body { font-family: Arial, sans-serif; background:#f7f9fc; margin:0; padding:20px; }
+  .container { max-width:720px; margin:20px auto; background:#fff; padding:24px; border-radius:12px; box-shadow:0 6px 20px rgba(0,0,0,0.06); }
+  h1 { text-align:center; color:#333; margin-top:0; }
+  textarea { width:100%; height:80px; padding:10px; border-radius:8px; border:1px solid #dfe6ef; font-size:15px; resize:vertical; }
+  button { margin-top:12px; width:100%; padding:12px; border-radius:8px; border:none; background:#2b87f5; color:white; font-size:16px; cursor:pointer; }
+  button[disabled]{ opacity:0.6; cursor:not-allowed; }
+  .result { margin-top:20px; padding:18px; background:#fbfdff; border-radius:10px; border:1px solid #eef3fb; }
+  .tag { display:inline-block; padding:6px 12px; border-radius:8px; color:#fff; font-weight:700; }
+  .interaction { background:#e74c3c; } .no-interaction { background:#27ae60; }
+  .confidence-bar { height:16px; background:#eee; border-radius:8px; overflow:hidden; margin-top:8px; }
+  .confidence-fill { height:100%; background:#3498db; transition:width .4s ease; }
+  .risk-safe{ color:#27ae60; font-weight:700 } .risk-warning{ color:#f39c12; font-weight:700 } .risk-danger{ color:#c0392b; font-weight:700 }
+  .spinner { display:inline-block; width:18px; height:18px; border:3px solid rgba(0,0,0,0.08); border-top-color:#2b87f5; border-radius:50%; animation:spin 1s linear infinite; vertical-align:middle; margin-left:8px; }
+  @keyframes spin { to { transform:rotate(360deg) } }
+  ul.bullets { margin:8px 0 0 18px; }
+  pre.fallback { white-space:pre-wrap; background:#fff8e6; padding:8px; border-radius:6px; border:1px solid #ffecb3; }
+  .small { font-size:13px; color:#666; margin-top:6px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <h1>Drug Interaction Checker</h1>
+
+    <label for="inputText">Enter drug names & dosages (one line is fine):</label>
+    <textarea id="inputText" placeholder="Example: warfarin 5 mg and ibuprofen 400 mg"></textarea>
+
+    <!-- important: type="button" prevents form-submit reload -->
+    <button id="checkBtn" type="button">Check Interaction</button>
+
+    <div id="result" class="result" style="display:none"></div>
+  </div>
+
+<script>
+const checkBtn = document.getElementById('checkBtn');
+const inputText = document.getElementById('inputText');
+const resultDiv = document.getElementById('result');
+
+function renderBullets(explText){
+  // explText may already include "- " bullets or be a paragraph.
+  // Normalize lines that start with '-' or '•' into a list.
+  const lines = explText.split(/\r?\n/).map(l => l.trim()).filter(l => l.length>0);
+  // If many lines already start with '-' or '•', render list
+  const bulletLines = lines.filter(l => l.startsWith('-') || l.startsWith('•') || l.startsWith('  •') || l.startsWith('*'));
+  if(bulletLines.length >= 1){
+    // clean bullet markers
+    const items = bulletLines.map(l => l.replace(/^[-\u2022\*\s]+/, '').trim());
+    return `<ul class="bullets">${items.map(i => `<li>${escapeHtml(i)}</li>`).join('')}</ul>`;
+  }
+  // Fallback: try to split by sentence and show each as bullet
+  const sentences = explText.split(/(?<=\.)\s+/).filter(s => s.trim().length>0);
+  if(sentences.length>1){
+    return `<ul class="bullets">${sentences.map(s => `<li>${escapeHtml(s.replace(/\.$/, ''))}</li>`).join('')}</ul>`;
+  }
+  // final fallback: show as preformatted paragraph
+  return `<pre class="fallback">${escapeHtml(explText)}</pre>`;
+}
+
+function escapeHtml(s){
+  return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function checkInteraction(){
+  const text = inputText.value.trim();
+  if(!text){
+    alert('Please enter a drug pair or text.');
+    return;
+  }
+
+  // show loading state
+  checkBtn.disabled = true;
+  const spinner = document.createElement('span');
+  spinner.className = 'spinner';
+  spinner.id = 'spinner';
+  checkBtn.appendChild(spinner);
+
+  resultDiv.style.display = 'block';
+  resultDiv.innerHTML = `<div class="small">Analyzing... (this may take 0.5–3s)</div>`;
+
+  try {
+    const res = await fetch('http://127.0.0.1:8000/predict_enhanced', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({texts: [text]})
+    });
+
+    if(!res.ok){
+      // show error details
+      const txt = await res.text();
+      resultDiv.innerHTML = `<div class="small">Server error: ${res.status} ${res.statusText}</div><pre class="fallback">${escapeHtml(txt)}</pre>`;
+      return;
+    }
+
+    const data = await res.json();
+    // defensive checks
+    const prediction = (data.predictions && data.predictions[0]) || 'unknown';
+    const confidence = (data.confidence && data.confidence[0]) || 0;
+    const dosage = (data.dosage_checks && data.dosage_checks[0]) || {aggregated:{overall_risk:'unknown'}, entries:[]};
+    const explanation = (data.llm_explanations && data.llm_explanations[0]) || 'No explanation';
+
+    // build HTML
+    const tagClass = prediction === 'interaction' ? 'interaction' : 'no-interaction';
+    const confidencePct = Math.round(confidence*100);
+    const overallRisk = dosage.aggregated && dosage.aggregated.overall_risk ? dosage.aggregated.overall_risk : 'unknown';
+    let riskClass = 'risk-danger';
+    if(overallRisk === 'likely_safe') riskClass = 'risk-safe';
+    else if(overallRisk === 'possible_harm') riskClass = 'risk-warning';
+
+    const drugsHtml = (dosage.entries||[]).map(d => `<li>${escapeHtml(String(d.drug_phrase))} - ${d.qty_mg || 'N/A'} mg</li>`).join('');
+
+    // Render bullet-point explanation as list if possible
+    const explHtml = renderBullets(String(explanation));
+
+    resultDiv.innerHTML = `
+      <div><span class="tag ${tagClass}">${escapeHtml(prediction.toUpperCase())}</span></div>
+
+      <h3 style="margin:10px 0 6px 0">Confidence</h3>
+      <div class="confidence-bar"><div class="confidence-fill" style="width:${confidencePct}%"></div></div>
+      <div class="small">${confidencePct}% sure</div>
+
+      <h3 style="margin-top:14px">Dosage Risk</h3>
+      <div class="${riskClass}">Overall Risk: ${escapeHtml(overallRisk)}</div>
+      <ul style="margin-top:8px">${drugsHtml}</ul>
+
+      <h3 style="margin-top:12px">Explanation</h3>
+      ${explHtml}
+    `;
+  } catch(err){
+    resultDiv.innerHTML = `<div class="small">Request failed: ${escapeHtml(String(err))}</div>`;
+    console.error(err);
+  } finally {
+    // remove spinner and re-enable button
+    const sp = document.getElementById('spinner');
+    if(sp) sp.remove();
+    checkBtn.disabled = false;
+  }
+}
+
+// attach
+checkBtn.addEventListener('click', checkInteraction);
+
+// Allow Ctrl+Enter to submit without reloading
+inputText.addEventListener('keydown', function(e){
+  if(e.ctrlKey && e.key === 'Enter'){
+    e.preventDefault();
+    checkInteraction();
+  }
+});
+</script>
+</body>
+</html>
