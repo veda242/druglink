@@ -1,12 +1,3 @@
-## 👥 Contributors
-1. Sneha  
-2. VedaSri  
-3. Abhishek  
-4. Praneeth  
-5. Vineeth  
-
----
-
 # 🧪 DrugLink  
 **Interpretable Drug–Drug Interaction Prediction**
 
@@ -176,5 +167,12 @@ Explanation based on knowledge subgraph
 - The project runs locally
 
 - No cloud deployment required
+## 👥 Contributors
+1. Sneha  
+2. VedaSri  
+3. Abhishek  
+4. Praneeth  
+5. Vineeth  
 
+---
 
