@@ -1,1 +1,33 @@
-node_modules
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Python venvs & caches
+venv/
+**/venv/
+.venv/
+**/.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+
+# Environment and local config
+.env
+.env.*
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.cache/
+.tmp/
+
+# Build outputs
+build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
