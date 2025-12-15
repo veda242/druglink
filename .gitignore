@@ -31,3 +31,6 @@ dist/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Local cache/db artifacts
+DRUGLINK-model-main/llm_cache.db.*
