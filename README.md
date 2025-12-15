@@ -1,12 +1,3 @@
-## 👥 Contributors
-1. Sneha  
-2. VedaSri  
-3. Abhishek  
-4. Praneeth  
-5. Vineeth  
-
----
-
 # 🧪 DrugLink  
 **Interpretable Drug–Drug Interaction Prediction**
 
@@ -70,7 +61,7 @@ Combine drug–drug interaction data with biomedical knowledge graphs and use
 ## 🛠️ Technology Stack
 
 ### Programming Language
-- Python 3.x  
+- Python 
 
 ### Machine Learning & Graph Libraries
 - PyTorch  
@@ -166,8 +157,6 @@ The system will display:
 
 Drug–drug interaction prediction
 
-Probability score
-
 Confidence level
 
 Explanation based on knowledge subgraph
@@ -178,5 +167,12 @@ Explanation based on knowledge subgraph
 - The project runs locally
 
 - No cloud deployment required
+## 👥 Contributors
+1. Sneha  
+2. Vedasri  
+3. Abhishek  
+4. Praneeth  
+5. Vineeth  
 
+---
 
