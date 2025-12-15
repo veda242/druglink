@@ -70,7 +70,7 @@ Combine drug–drug interaction data with biomedical knowledge graphs and use
 ## 🛠️ Technology Stack
 
 ### Programming Language
-- Python 3.x  
+- Python 
 
 ### Machine Learning & Graph Libraries
 - PyTorch  
@@ -165,8 +165,6 @@ aspirin with ibuprofen
 The system will display:
 
 Drug–drug interaction prediction
-
-Probability score
 
 Confidence level
 
