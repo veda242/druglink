@@ -169,7 +169,7 @@ Explanation based on knowledge subgraph
 - No cloud deployment required
 ## 👥 Contributors
 1. Sneha  
-2. VedaSri  
+2. Vedasri  
 3. Abhishek  
 4. Praneeth  
 5. Vineeth  
