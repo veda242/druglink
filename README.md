@@ -172,13 +172,6 @@ Confidence level
 
 Explanation based on knowledge subgraph
 ```
-## 🛑 Common Issues
-
-- Module not found error: Activate the virtual environment
-
-- Version conflict: Ensure correct Python version
-
-- Slow execution: Expected due to graph processing
 
 ## ✅ Notes
 
@@ -186,4 +179,4 @@ Explanation based on knowledge subgraph
 
 - No cloud deployment required
 
-- This setup is sufficient for Milestone-2 demonstration
+
